@@ -1,0 +1,2 @@
+train_cfg: main_m2ac
+test_cfg: test_m2ac

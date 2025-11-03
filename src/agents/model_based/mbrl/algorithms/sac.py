@@ -1,9 +1,10 @@
+from copy import copy
 import os
 import gymnasium as gym
 import numpy as np
 import torch
 import omegaconf
-from typing import Optional
+from typing import Optional, Tuple
 
 import mbrl.constants
 import mbrl.types
@@ -26,7 +27,7 @@ def train(
     cfg: omegaconf.DictConfig,
     silent: bool = False,
     work_dir: Optional[str] = None,
-) -> np.float32:
+) -> Tuple[float, SACAgent]:
     """
     Train a base SAC agent on the specified Gym environment (no model-based rollouts).
     """
@@ -42,7 +43,7 @@ def train(
 
     # Setup work directory
     if work_dir is None:
-        work_dir = os.getcwd()
+        work_dir = os.path.join(os.getcwd(), "sac")
         load_checkpoints = False
     else:
         load_checkpoints = True
@@ -85,6 +86,7 @@ def train(
     updates_made = 0
     env_steps = 0
     best_eval_reward = -np.inf
+    best_agent = None
     epoch = 0
 
     # Main training loop
@@ -119,7 +121,7 @@ def train(
 
             # End of evaluation interval
             if (env_steps + 1) % cfg.overrides.epoch_length == 0:
-                avg_reward = common.evaluate(
+                avg_reward, *_ = common.evaluate(
                     test_env,
                     agent,
                     cfg.algorithm.num_eval_episodes,
@@ -133,10 +135,11 @@ def train(
                 # Save best model
                 if avg_reward > best_eval_reward:
                     best_eval_reward = avg_reward
+                    best_agent = copy(agent)
                     agent.sac_agent.save_checkpoint(ckpt_path=os.path.join(work_dir, "sac.pth"))
                 epoch += 1
 
             # Increment step counter
             env_steps += 1
             obs = next_obs
-    return np.float32(best_eval_reward)
+    return np.float32(best_eval_reward), best_agent

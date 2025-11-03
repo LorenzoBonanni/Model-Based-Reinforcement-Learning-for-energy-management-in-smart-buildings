@@ -2,8 +2,9 @@
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
+from copy import copy
 import os
-from typing import Optional, Sequence, cast
+from typing import Optional, Sequence, Tuple, cast
 
 import gymnasium as gym
 import hydra.utils
@@ -95,7 +96,7 @@ def train(
         cfg: omegaconf.DictConfig,
         silent: bool = False,
         work_dir: Optional[str] = None,
-) -> np.float32:
+) -> Tuple[float, SACAgent]:
     # ------------------- Initialization -------------------
     debug_mode = cfg.get("debug_mode", False)
     obs_shape = env.observation_space.shape
@@ -107,7 +108,8 @@ def train(
     agent = SACAgent(pytorch_sac_pranz24.SAC(cfg.algorithm.agent.num_inputs, env.action_space, cfg.algorithm.agent.args))
     if work_dir == None:
         print("Running MBPO algorithm from a fresh start!")
-        work_dir = os.getcwd()
+        work_dir = os.path.join(os.getcwd(), "mbpo")
+        os.makedirs(work_dir, exist_ok=True)
         load_checkpoints = False
     else:
         print("Running MBPO algorithm from a checkpoint!")
@@ -178,6 +180,7 @@ def train(
         logger=None if silent else logger,
     )
     best_eval_reward = -np.inf
+    best_agent = None
     epoch = 0
     sac_buffer = None
     while env_steps < cfg.overrides.num_steps:
@@ -271,7 +274,7 @@ def train(
 
             # ------ Epoch ended (evaluate and save model) ------
             if (env_steps + 1) % cfg.overrides.epoch_length == 0:
-                avg_reward = mbrl.util.common.evaluate(
+                avg_reward, *_ = mbrl.util.common.evaluate(
                     test_env, agent, cfg.algorithm.num_eval_episodes, video_recorder
                 )
                 logger.log_data(
@@ -287,6 +290,7 @@ def train(
                 if avg_reward > best_eval_reward:
                     video_recorder.save(f"{epoch}.mp4")
                     best_eval_reward = avg_reward
+                    best_agent = copy(agent)
                     agent.sac_agent.save_checkpoint(
                         ckpt_path=os.path.join(work_dir, "sac.pth")
                     )
@@ -294,4 +298,4 @@ def train(
 
             env_steps += 1
             obs = next_obs
-    return np.float32(best_eval_reward)
+    return np.float32(best_eval_reward), best_agent

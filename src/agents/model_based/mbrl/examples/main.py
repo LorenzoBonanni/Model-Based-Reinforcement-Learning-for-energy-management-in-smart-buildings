@@ -46,20 +46,36 @@ def run_experiment(train_cfg_name):
         # Select and run algorithm
         if cfg.algorithm.name == "mbpo":
             test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
+<<<<<<< Updated upstream
             return mbpo.train(env, test_env, term_fn, cfg, work_dir=os.path.join(os.getcwd(), 'mbpo'))
 
         elif cfg.algorithm.name == "m2ac":
             test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
             return m2ac.train(env, test_env, term_fn, cfg, work_dir=os.path.join(os.getcwd(), 'm2ac'))
+=======
+            return mbpo.train(env, test_env, term_fn, cfg)
+
+        elif cfg.algorithm.name == "m2ac":
+            test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
+            return m2ac.train(env, test_env, term_fn, cfg)
+>>>>>>> Stashed changes
 
         elif cfg.algorithm.name == "macura":
             test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
             test_env2, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
+<<<<<<< Updated upstream
             return macura.train(env, test_env, test_env2, term_fn, cfg, work_dir=os.path.join(os.getcwd(), 'macura'))
         
         elif cfg.algorithm.name == "sac":
             test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
             return sac.train(env, test_env, term_fn, cfg, work_dir=os.path.join(os.getcwd(), 'sac'))
+=======
+            return macura.train(env, test_env, test_env2, term_fn, cfg)
+        
+        elif cfg.algorithm.name == "sac":
+            test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
+            return sac.train(env, test_env, term_fn, cfg)
+>>>>>>> Stashed changes
 
         else:
             raise ValueError(f"Unknown algorithm: {cfg.algorithm.name}")

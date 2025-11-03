@@ -1,0 +1,12 @@
+#!/usr/bin/env bash 
+#SBATCH --job-name mbpo
+#SBATCH --mem 16G
+#SBATCH --cpus-per-gpu 10
+#SBATCH --gres gpu:1
+#SBATCH --partition long
+source /home/lbonanni/miniconda3/etc/profile.d/conda.sh
+conda deactivate
+conda activate macura_env_gymnasium_hpc_compatible
+cd /home/lbonanni/Model-Based-Reinforcement-Learning-for-energy-management-in-smart-buildings-main/src/agents/model_based
+
+python -m mbrl.examples.main --config-name=launcher_mbpo

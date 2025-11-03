@@ -230,7 +230,11 @@ def train(
         cfg: omegaconf.DictConfig,
         silent: bool = False,
         work_dir: Optional[str] = None,
+<<<<<<< Updated upstream
 ) -> Tuple:
+=======
+) -> Tuple[float, SACAgent]:
+>>>>>>> Stashed changes
     """ This is the starting point for the mbpo algorithm. We will learn on the env environment and test agents
     performance on test_env. We interchange model_training and agent_training. The model is trained using experienced
     trajectories in the real environment using the current agent. After that the agent is trained using artificial
@@ -259,7 +263,12 @@ def train(
     print("Using MACURA")
     if work_dir == None:
         print("Running MACURA algorithm from a fresh start!")
+<<<<<<< Updated upstream
         work_dir = os.getcwd()
+=======
+        work_dir = os.path.join(os.getcwd(), "macura")
+        os.makedirs(work_dir, exist_ok=True)
+>>>>>>> Stashed changes
     max_rollout_length = cfg.algorithm.max_rollout_length
     obs_shape = env.observation_space.shape
     act_shape = env.action_space.shape

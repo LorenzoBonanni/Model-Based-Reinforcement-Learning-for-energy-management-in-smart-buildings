@@ -1,5 +1,6 @@
+from copy import copy
 import os
-from typing import Optional, Sequence, cast
+from typing import Optional, Sequence, Tuple, cast
 
 import gymnasium as gym
 import hydra.utils
@@ -237,7 +238,7 @@ def train(
         cfg: omegaconf.DictConfig,
         silent: bool = False,
         work_dir: Optional[str] = None,
-) -> np.float32:
+) -> Tuple[float, SACAgent]:
     """ This is the starting point for the mbpo algorithm. We will learn on the env environment and test agents
     performance on test_env. We interchange model_training and agent_training. The model is trained using experienced
     trajectories in the real environment using the current agent. After that the agent is trained using artificial
@@ -261,7 +262,8 @@ def train(
     print("Using M2AC")
     if work_dir == None:
         print("Running Vanilla M2AC algorithm from a fresh start!")
-        work_dir = os.getcwd()
+        work_dir = os.path.join(os.getcwd(), "m2ac")
+        os.makedirs(work_dir, exist_ok=True)
         load_checkpoints = False
     else:
         print("Running Vanilla M2aC algorithm from a checkpoint!")
@@ -369,6 +371,7 @@ def train(
 
     sac_buffer = None
     best_eval_reward = -np.inf
+    best_agent = None
     updates_made = 0
     # real steps taken in environment
     env_steps = 0
@@ -477,7 +480,7 @@ def train(
             # ------ Epoch ended (evaluate and save model) ------
             if (env_steps + 1) % epoch_length == 0:
                 print(f"Epoch ended - env-steps:{env_steps}")
-                avg_reward = mbrl.util.common.evaluate(
+                avg_reward, *_ = mbrl.util.common.evaluate(
                     test_env, agent, cfg.algorithm.num_eval_episodes, video_recorder
                 )
                 logger.log_data(
@@ -493,10 +496,11 @@ def train(
                 video_recorder.save(f"{epoch}.mp4")
                 if avg_reward > best_eval_reward:
                     best_eval_reward = avg_reward
+                    best_agent = copy(agent)
                     agent.sac_agent.save_checkpoint(
                         ckpt_path=os.path.join(work_dir, "sac.pth")
                     )
                 epoch += 1
 
             obs = next_obs
-    return np.float32(best_eval_reward)
+    return np.float32(best_eval_reward), best_agent
