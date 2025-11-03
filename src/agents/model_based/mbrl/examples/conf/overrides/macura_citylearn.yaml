@@ -3,8 +3,11 @@ env: "citylearn"
 term_fn: "no_termination"
 
 num_steps: 22330
+# num_steps: 10
 trial_length: 719
+# trial_length: 7
 epoch_length: 1015
+# epoch_length: 10
 num_elites: 7
 patience: 10
 improvement_threshold: 0.01

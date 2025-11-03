@@ -1,0 +1,2 @@
+train_cfg: main_macura
+test_cfg: test_macura

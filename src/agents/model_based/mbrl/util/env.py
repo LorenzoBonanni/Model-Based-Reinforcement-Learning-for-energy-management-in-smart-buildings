@@ -10,8 +10,9 @@ import omegaconf
 import torch
 from citylearn.citylearn import CityLearnEnv
 from citylearn.wrappers import NormalizedSpaceWrapper, StableBaselines3Wrapper
-from rewards.CityLearnReward import SolarPenaltyAndComfortReward
-from rewards.FactorizedCityLearnReward import FactorizedSolarPenaltyAndComfortReward
+from mbrl.util.CityLearnWrappers import CityLearnKPIWrapper, CityLearnWandbWrapper
+from mbrl.rewards.CityLearnReward import SolarPenaltyAndComfortReward
+from mbrl.rewards.FactorizedCityLearnReward import FactorizedSolarPenaltyAndComfortReward
 
 import mbrl.planning
 import mbrl.types
@@ -68,6 +69,7 @@ def _legacy_make_env(
         term_fn, reward_fn = _get_term_and_reward_fn(cfg)
     else:
         import mbrl.env.mujoco_envs
+        import mbrl.env
 
         if cfg.overrides.env == "cartpole_continuous":
             env = mbrl.env.cartpole_continuous.CartPoleEnv(render_mode=render_mode)
@@ -88,8 +90,13 @@ def _legacy_make_env(
             )
             env.reward_function = SolarPenaltyAndComfortReward(env.schema)
             reward_fn = SolarPenaltyAndComfortReward(env.schema)
+
             env = NormalizedSpaceWrapper(env)
-            env =  StableBaselines3Wrapper(env)
+            if not test_env:
+                env = CityLearnWandbWrapper(env, online=True)
+            else:
+                env = CityLearnKPIWrapper(env)
+
             term_fn = mbrl.env.termination_fns.no_termination
         elif cfg.overrides.env == "factorized_citylearn":
             env = CityLearnEnv(
@@ -109,7 +116,10 @@ def _legacy_make_env(
             env.reward_function = SolarPenaltyAndComfortReward(env.schema)
             reward_fn = SolarPenaltyAndComfortReward(env.schema)
             env = NormalizedSpaceWrapper(env)
-            env =  StableBaselines3Wrapper(env)
+            if not test_env:
+                env = CityLearnWandbWrapper(env, online=True)
+            else:
+                env = CityLearnKPIWrapper(env)
             term_fn = mbrl.env.termination_fns.no_termination
             
         else:
@@ -205,9 +215,11 @@ class EnvHandler(ABC):
             return _legacy_make_env(cfg, test_env=test_env)
 
         env = hydra.utils.instantiate(env_cfg)
+
         env = gym.wrappers.TimeLimit(
             env, max_steps = cfg.overrides.get("trial_length", 1000)
         )
+
         term_fn, reward_fn = _get_term_and_reward_fn(cfg)
         env, reward_fn = _handle_learned_rewards_and_seed(cfg, env, reward_fn)
         return env, term_fn, reward_fn

@@ -103,6 +103,7 @@ def evaluate(
         agent: SACAgent,
         num_episodes: int,
         video_recorder: VideoRecorder,
+        kpi = False
 ) -> float:
     """We want to evaluate the agent.
     Uses agent to act in environemnt. Calculates the mean reward over the episodes.
@@ -118,18 +119,23 @@ def evaluate(
         (float): The average reward of the num_episode episodes
     """
     avg_episode_reward = 0
+    infos = []
     for episode in range(num_episodes):
-        obs, _ = env.reset()
+        obs, _ = env.reset(seed=episode)
         video_recorder.init(enabled=(episode == 0))
-        terminated= truncated = False
+        terminated = truncated = False
         episode_reward = 0
         while not terminated and not truncated:
             action = agent.act(obs)
-            obs, reward, terminated, truncated, _ = env.step(action)
+            obs, reward, terminated, truncated, info = env.step(action)
+            if info:
+                infos.append(info)
             video_recorder.record(env)
             episode_reward += reward
         avg_episode_reward += episode_reward
-    return avg_episode_reward / num_episodes
+
+
+    return avg_episode_reward / num_episodes, infos
 
 
 def evaluate_for_building(

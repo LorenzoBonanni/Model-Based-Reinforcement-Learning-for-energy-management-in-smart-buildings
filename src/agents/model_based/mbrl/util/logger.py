@@ -9,6 +9,7 @@ from typing import Counter, Dict, List, Mapping, Tuple, Union
 
 import termcolor
 import torch
+import wandb
 
 LogFormatType = List[Tuple[str, str, str]]
 LogTypes = Union[int, float, torch.Tensor]
@@ -172,6 +173,7 @@ class Logger(object):
             data (mapping str->(int/float/torch.Tensor)): the dictionary with the data. Each
                 keyword must be a variable name in the log format passed when creating this group.
         """
+        wandb.log(data)
         if group_name not in self._groups:
             raise ValueError(f"Group {group_name} has not been registered.")
         meter_group, dump_frequency, color = self._groups[group_name]
