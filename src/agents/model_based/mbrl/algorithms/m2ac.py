@@ -14,7 +14,9 @@ import mbrl.planning
 import mbrl.third_party.pytorch_sac_pranz24 as pytorch_sac_pranz24
 import mbrl.types
 import mbrl.util
+import mbrl.util.replay_buffer
 import mbrl.util.common
+import mbrl.util.logger
 import mbrl.util.math
 import mbrl.util.mujoco
 from mbrl.planning.sac_wrapper import SACAgent
@@ -47,15 +49,15 @@ def get_masking_rate(current_rollout_length: int, max_rollout_length: int, defau
 
 def rollout_model_and_populate_sac_buffer(
         model_env: mbrl.models.ModelEnv,
-        replay_buffer: mbrl.util.ReplayBuffer,
+        replay_buffer: mbrl.util.replay_buffer.ReplayBuffer,
         agent: SACAgent,
-        sac_buffer: mbrl.util.ReplayBuffer,
+        sac_buffer: mbrl.util.replay_buffer.ReplayBuffer,
         sac_samples_action: bool,
         max_rollout_length: int,
         batch_size: int,
         default_masking_rate: float,
         model_error_penalty_coefficient: float,
-        logger: mbrl.util.Logger,
+        logger: mbrl.util.logger.Logger,
         step: int,
         epoch: int
 ):
@@ -195,12 +197,12 @@ def calc_uncertainty_score(chosen_means: torch.Tensor, chosen_stds: torch.Tensor
     return uncertainty_score
 
 def change_capacity_replay_buffer(
-        sac_buffer: Optional[mbrl.util.ReplayBuffer],
+        sac_buffer: Optional[mbrl.util.replay_buffer.ReplayBuffer],
         obs_shape: Sequence[int],
         act_shape: Sequence[int],
         new_capacity: int,
         seed: int,
-) -> mbrl.util.ReplayBuffer:
+) -> mbrl.util.replay_buffer.ReplayBuffer:
     """If the given sac_buffer is None, a new ReplayBuffer is created.
     Else the exisiting sac_buffers size is changed, exisiting data will be kept.
 
@@ -219,12 +221,12 @@ def change_capacity_replay_buffer(
         # sac buffer needs to be created
         if sac_buffer is None:
             rng = np.random.default_rng(seed=seed)
-            new_buffer = mbrl.util.ReplayBuffer(new_capacity, obs_shape, act_shape, rng=rng)
+            new_buffer = mbrl.util.replay_buffer.ReplayBuffer(new_capacity, obs_shape, act_shape, rng=rng)
             return new_buffer
         # capacity needs to be increased
         else:
             rng = sac_buffer.rng
-            new_buffer = mbrl.util.ReplayBuffer(new_capacity, obs_shape, act_shape, rng=rng)
+            new_buffer = mbrl.util.replay_buffer.ReplayBuffer(new_capacity, obs_shape, act_shape, rng=rng)
             obs, action, next_obs, reward, done = sac_buffer.get_all().astuple()
             new_buffer.add_batch(obs, action, next_obs, reward, done)
             return new_buffer
@@ -278,7 +280,7 @@ def train(
     mbrl.planning.complete_agent_cfg(env, cfg.algorithm.agent)
     agent = SACAgent(pytorch_sac_pranz24.SAC(cfg.algorithm.agent.num_inputs, env.action_space, cfg.algorithm.agent.args))
 
-    logger = mbrl.util.Logger(work_dir)#, enable_back_compatible=True)
+    logger = mbrl.util.logger.Logger(work_dir)#, enable_back_compatible=True)
     logger.register_group(
         mbrl.constants.RESULTS_LOG_NAME,
         mbrl.constants.MBPO_LOG_FORMAT,

@@ -6,14 +6,6 @@ from typing import Dict, Union
 
 import omegaconf
 
-from .logger import Logger
-from .replay_buffer import (
-    ReplayBuffer,
-    ReplayBufferDynamicLifeTime,
-    SequenceTransitionIterator,
-    SequenceTransitionSampler,
-    TransitionIterator,
-)
 
 
 def create_handler(cfg: Union[Dict, omegaconf.ListConfig, omegaconf.DictConfig]):

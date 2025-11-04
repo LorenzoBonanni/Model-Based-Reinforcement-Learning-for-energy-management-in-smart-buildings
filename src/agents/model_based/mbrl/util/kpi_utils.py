@@ -1,15 +1,11 @@
 
-import numpy as np
 import pandas as pd
 
-import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import seaborn as sns
 import math
 
 from citylearn.citylearn import CityLearnEnv
-from citylearn.data import TOLERANCE
 
 def get_kpis(env: CityLearnEnv) -> pd.DataFrame:
     """Returns evaluation KPIs.
@@ -53,7 +49,7 @@ def get_kpis(env: CityLearnEnv) -> pd.DataFrame:
 
     return kpis
 
-def plot_building_kpis(envs: dict[str, CityLearnEnv]) -> plt.Figure:
+def plot_building_kpis(envs: dict[str, CityLearnEnv]) -> pd.DataFrame:
     """Plots electricity consumption, cost and carbon emissions
     at the building-level for different control agents in bar charts.
 
@@ -110,11 +106,11 @@ def plot_building_kpis(envs: dict[str, CityLearnEnv]) -> plt.Figure:
         for s in ['right','top']:
             ax.spines[s].set_visible(False)
 
-    return fig
+    return kpis
 
 
 
-def plot_district_kpis(envs: dict[str, CityLearnEnv]) -> plt.Figure:
+def plot_district_kpis(envs: dict[str, CityLearnEnv]) -> pd.DataFrame:
     """Plots electricity consumption, cost, carbon emissions,
     average daily peak, ramping and (1 - load factor) at the
     district-level for different control agents in a bar chart.
@@ -158,9 +154,9 @@ def plot_district_kpis(envs: dict[str, CityLearnEnv]) -> plt.Figure:
 
     ax.legend(loc='upper left', bbox_to_anchor=(1.3, 1.0), framealpha=0.0)
 
-    return fig
+    return kpis
 
-def plot_simulation_summary(envs: dict[str, CityLearnEnv], base_path: str):
+def plot_simulation_summary(envs: dict[str, CityLearnEnv], base_path: str, algorithm_name: str = "") -> tuple[pd.DataFrame, pd.DataFrame]:
     """Plots KPIs for different control agents.
 
     Parameters
@@ -170,13 +166,14 @@ def plot_simulation_summary(envs: dict[str, CityLearnEnv], base_path: str):
         the agents have been used to control.
     """
 
-    _ = plot_building_kpis(envs)
+    building_kpis = plot_building_kpis(envs)
     plt.tight_layout()
-    plt.savefig(f'{base_path}/building_kpis.png')
+    plt.savefig(f'{base_path}/{algorithm_name}_building_kpis.png')
 
-    _ = plot_district_kpis(envs)
+    district_kpis = plot_district_kpis(envs)
     plt.tight_layout()
-    plt.savefig(f'{base_path}/district_kpis.png')
+    plt.savefig(f'{base_path}/{algorithm_name}_district_kpis.png')
+    return building_kpis, district_kpis
 
 def evaluate_citylearn_challenge(env: CityLearnEnv, weights: dict[str, float]) -> dict[str, float]:
     evaluation = {

@@ -18,6 +18,8 @@ import mbrl.planning
 import mbrl.third_party.pytorch_sac_pranz24 as pytorch_sac_pranz24
 import mbrl.types
 import mbrl.util
+import mbrl.util.logger
+import mbrl.util.replay_buffer
 import mbrl.util.common
 import mbrl.util.math
 from mbrl.planning.sac_wrapper import SACAgent
@@ -33,9 +35,9 @@ MBPO_LOG_FORMAT = mbrl.constants.EVAL_LOG_FORMAT + [
 
 def rollout_model_and_populate_sac_buffer(
         model_env: mbrl.models.ModelEnv,
-        replay_buffer: mbrl.util.ReplayBuffer,
+        replay_buffer: mbrl.util.replay_buffer.ReplayBuffer,
         agent: SACAgent,
-        sac_buffer: mbrl.util.ReplayBuffer,
+        sac_buffer: mbrl.util.replay_buffer.ReplayBuffer,
         sac_samples_action: bool,
         rollout_horizon: int,
         batch_size: int,
@@ -69,18 +71,18 @@ def rollout_model_and_populate_sac_buffer(
 
 
 def maybe_replace_sac_buffer(
-        sac_buffer: Optional[mbrl.util.ReplayBuffer],
+        sac_buffer: Optional[mbrl.util.replay_buffer.ReplayBuffer],
         obs_shape: Sequence[int],
         act_shape: Sequence[int],
         new_capacity: int,
         seed: int,
-) -> mbrl.util.ReplayBuffer:
+) -> mbrl.util.replay_buffer.ReplayBuffer:
     if sac_buffer is None or new_capacity != sac_buffer.capacity:
         if sac_buffer is None:
             rng = np.random.default_rng(seed=seed)
         else:
             rng = sac_buffer.rng
-        new_buffer = mbrl.util.ReplayBuffer(new_capacity, obs_shape, act_shape, rng=rng)
+        new_buffer = mbrl.util.replay_buffer.ReplayBuffer(new_capacity, obs_shape, act_shape, rng=rng)
         if sac_buffer is None:
             return new_buffer
         obs, action, next_obs, reward, terminated, truncated = sac_buffer.get_all().astuple()
@@ -117,7 +119,7 @@ def train(
         load_checkpoints = True
 
     # ------------------- Create Logger -------------------
-    logger = mbrl.util.Logger(work_dir)
+    logger = mbrl.util.logger.Logger(work_dir)
     logger.register_group(
         mbrl.constants.RESULTS_LOG_NAME,
         mbrl.constants.MBPO_LOG_FORMAT,

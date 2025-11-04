@@ -7,7 +7,6 @@ from agents.checa.forecast_agent.forecasting_agent import ForecastAgent
 from agents.checa.battery_control_search.battery_controller import BatteryController
 from agents.checa.utils import get_observation_names_with_building
 
-
 class Checa(Agent):
     def __init__(self, env: CityLearnEnv, params=None, **kwargs):
         super().__init__(env, **kwargs)

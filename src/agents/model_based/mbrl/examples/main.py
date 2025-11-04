@@ -46,36 +46,20 @@ def run_experiment(train_cfg_name):
         # Select and run algorithm
         if cfg.algorithm.name == "mbpo":
             test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
-<<<<<<< Updated upstream
-            return mbpo.train(env, test_env, term_fn, cfg, work_dir=os.path.join(os.getcwd(), 'mbpo'))
-
-        elif cfg.algorithm.name == "m2ac":
-            test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
-            return m2ac.train(env, test_env, term_fn, cfg, work_dir=os.path.join(os.getcwd(), 'm2ac'))
-=======
             return mbpo.train(env, test_env, term_fn, cfg)
 
         elif cfg.algorithm.name == "m2ac":
             test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
             return m2ac.train(env, test_env, term_fn, cfg)
->>>>>>> Stashed changes
 
         elif cfg.algorithm.name == "macura":
             test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
             test_env2, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
-<<<<<<< Updated upstream
-            return macura.train(env, test_env, test_env2, term_fn, cfg, work_dir=os.path.join(os.getcwd(), 'macura'))
-        
-        elif cfg.algorithm.name == "sac":
-            test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
-            return sac.train(env, test_env, term_fn, cfg, work_dir=os.path.join(os.getcwd(), 'sac'))
-=======
             return macura.train(env, test_env, test_env2, term_fn, cfg)
         
         elif cfg.algorithm.name == "sac":
             test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
             return sac.train(env, test_env, term_fn, cfg)
->>>>>>> Stashed changes
 
         else:
             raise ValueError(f"Unknown algorithm: {cfg.algorithm.name}")
@@ -106,9 +90,9 @@ def test_experiment(test_cfg_name):
         mean_infos = infos.mean()
         std_infos = infos.std()
         agg_infos = pd.concat([mean_infos, std_infos], axis=1, keys=['mean', 'std'])
-        agg_infos.to_csv(os.path.join(workdir, "test_kpis.csv"))
-        infos.to_csv(os.path.join(workdir, "test_kpis_episodes.csv"))
-        building_kpi, district_kpi = plot_simulation_summary({cfg.algorithm.name: test_env}, workdir)
+        agg_infos.to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_test_kpis.csv"))
+        infos.to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_test_kpis_episodes.csv"))
+        building_kpi, district_kpi = plot_simulation_summary({cfg.algorithm.name: test_env}, workdir, cfg.algorithm.name)
 
         phase_1_weights = {
             'comfort': 0.3,
@@ -133,7 +117,9 @@ def test_experiment(test_cfg_name):
             phase_1_weights
         )
 
-        pd.DataFrame(score).to_csv(os.path.join(workdir, "test_score.csv"))
+        pd.DataFrame(score).to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_test_score.csv"))
+        building_kpi.to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_building_kpis.csv"))
+        district_kpi.to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_district_kpis.csv"))
 
 
 @hydra.main(config_path="conf", config_name="launcher_macura")

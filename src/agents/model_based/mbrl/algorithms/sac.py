@@ -14,6 +14,7 @@ from mbrl.third_party.pytorch_sac_pranz24 import SAC
 from mbrl.third_party.pytorch_sac import VideoRecorder
 import mbrl.util.mujoco
 from omegaconf import OmegaConf
+import mbrl.util.logger
 
 MBPO_LOG_FORMAT = mbrl.constants.EVAL_LOG_FORMAT + [
     ("epoch", "E", "int"),
@@ -50,7 +51,7 @@ def train(
     os.makedirs(work_dir, exist_ok=True)
 
     # Logger and video recorder
-    logger = mbrl.util.Logger(work_dir)
+    logger = mbrl.util.logger.Logger(work_dir)
     logger.register_group(
         mbrl.constants.RESULTS_LOG_NAME,
         MBPO_LOG_FORMAT,

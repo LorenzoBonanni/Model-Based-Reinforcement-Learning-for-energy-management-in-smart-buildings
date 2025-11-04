@@ -15,6 +15,7 @@ import mbrl.third_party.pytorch_sac_pranz24 as pytorch_sac_pranz24
 import mbrl.types
 import mbrl.util
 import mbrl.util.replay_buffer
+import mbrl.util.logger
 import mbrl.util.common
 import mbrl.util.math
 from mbrl.planning.sac_wrapper import SACAgent
@@ -33,9 +34,9 @@ MBPO_LOG_FORMAT = [
 def rollout_model_and_populate_sac_buffer(
         rng,
         model_env: mbrl.models.ModelEnv,
-        replay_buffer: mbrl.util.ReplayBuffer,
+        replay_buffer: mbrl.util.replay_buffer.ReplayBuffer,
         agent: SACAgent,
-        sac_buffer: mbrl.util.ReplayBufferDynamicLifeTime,
+        sac_buffer: mbrl.util.replay_buffer.ReplayBufferDynamicLifeTime,
         sac_samples_action: bool,
         max_rollout_length: int,
         batch_size: int,
@@ -184,13 +185,13 @@ def rollout_model_and_populate_sac_buffer(
 
 
 def change_capacity_replay_buffer(
-        sac_buffer: Optional[mbrl.util.ReplayBufferDynamicLifeTime],
+        sac_buffer: Optional[mbrl.util.replay_buffer.ReplayBufferDynamicLifeTime],
         obs_shape: Sequence[int],
         act_shape: Sequence[int],
         new_capacity: int,
         seed: int,
         lifetime: int,
-) -> mbrl.util.ReplayBufferDynamicLifeTime:
+) -> mbrl.util.replay_buffer.ReplayBufferDynamicLifeTime:
     """If the given sac_buffer is None, a new ReplayBuffer is created.
     Else the existing sac_buffers size is changed, existing data will be kept.
 
@@ -210,12 +211,12 @@ def change_capacity_replay_buffer(
         # sac buffer needs to be created
         if sac_buffer is None:
             rng = np.random.default_rng(seed=seed)
-            new_buffer = mbrl.util.ReplayBufferDynamicLifeTime(new_capacity, obs_shape, act_shape, lifetime, rng=rng)
+            new_buffer = mbrl.util.replay_buffer.ReplayBufferDynamicLifeTime(new_capacity, obs_shape, act_shape, lifetime, rng=rng)
             return new_buffer
         # capacity needs to be increased
         else:
             rng = sac_buffer.rng
-            new_buffer = mbrl.util.ReplayBufferDynamicLifeTime(new_capacity, obs_shape, act_shape, lifetime, rng=rng)
+            new_buffer = mbrl.util.replay_buffer.ReplayBufferDynamicLifeTime(new_capacity, obs_shape, act_shape, lifetime, rng=rng)
             obs, action, next_obs, reward, done = sac_buffer.get_all().astuple()
             new_buffer.add_batch(obs, action, next_obs, reward, done)
             return new_buffer
@@ -230,11 +231,7 @@ def train(
         cfg: omegaconf.DictConfig,
         silent: bool = False,
         work_dir: Optional[str] = None,
-<<<<<<< Updated upstream
-) -> Tuple:
-=======
 ) -> Tuple[float, SACAgent]:
->>>>>>> Stashed changes
     """ This is the starting point for the mbpo algorithm. We will learn on the env environment and test agents
     performance on test_env. We interchange model_training and agent_training. The model is trained using experienced
     trajectories in the real environment using the current agent. After that the agent is trained using artificial
@@ -263,12 +260,8 @@ def train(
     print("Using MACURA")
     if work_dir == None:
         print("Running MACURA algorithm from a fresh start!")
-<<<<<<< Updated upstream
-        work_dir = os.getcwd()
-=======
         work_dir = os.path.join(os.getcwd(), "macura")
         os.makedirs(work_dir, exist_ok=True)
->>>>>>> Stashed changes
     max_rollout_length = cfg.algorithm.max_rollout_length
     obs_shape = env.observation_space.shape
     act_shape = env.action_space.shape
@@ -277,7 +270,7 @@ def train(
     mbrl.planning.complete_agent_cfg(env, cfg.algorithm.agent)
     agent = SACAgent(pytorch_sac_pranz24.SAC(cfg.algorithm.agent.num_inputs, env.action_space, cfg.algorithm.agent.args))
     # ------------------- Create Logger -------------------
-    logger = mbrl.util.Logger(work_dir)
+    logger = mbrl.util.logger.Logger(work_dir)
     logger.register_group(
         mbrl.constants.RESULTS_LOG_NAME,
         mbrl.constants.MBPO_LOG_FORMAT,
