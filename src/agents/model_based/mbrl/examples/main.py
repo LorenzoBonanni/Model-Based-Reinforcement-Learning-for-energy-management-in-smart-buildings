@@ -77,12 +77,11 @@ def test_experiment(test_cfg_name):
         cfg = compose(config_name=test_cfg_name)
 
         test_env, *_ = env_util.EnvHandler.make_env(cfg, test_env=True)
-        avg_reward, results = mbrl.util.common.evaluate(
+        avg_reward, results = mbrl.util.common.final_evaluate(
             test_env,
             agent,
-            cfg.algorithm.num_eval_episodes, 
-            VideoRecorder(None), 
-            kpi=True
+            cfg.algorithm.num_eval_episodes,
+            cfg.algorithm.name
         )
 
         workdir = os.getcwd()
@@ -92,35 +91,6 @@ def test_experiment(test_cfg_name):
         agg_infos = pd.concat([mean_infos, std_infos], axis=1, keys=['mean', 'std'])
         agg_infos.to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_test_kpis.csv"))
         infos.to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_test_kpis_episodes.csv"))
-        building_kpi, district_kpi = plot_simulation_summary({cfg.algorithm.name: test_env}, workdir, cfg.algorithm.name)
-
-        phase_1_weights = {
-            'comfort': 0.3,
-            'emissions': 0.1,
-            'grid_control': 0.6,
-            'resilience': 0.0
-        }
-        phase_2_weights = {
-            'comfort': 0.3,
-            'emissions': 0.1,
-            'grid_control': 0.3,
-            'resilience': 0.3
-        }
-        custom_weights = {
-            'comfort': 0.3,
-            'emissions': 0.4,
-            'grid_control': 0.3,
-            'resilience': 0.0
-        }
-        score = evaluate_citylearn_challenge(
-            test_env,
-            phase_1_weights
-        )
-
-        pd.DataFrame(score).to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_test_score.csv"))
-        building_kpi.to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_building_kpis.csv"))
-        district_kpi.to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_district_kpis.csv"))
-
 
 @hydra.main(config_path="conf", config_name="launcher_macura")
 def main(launcher_cfg: omegaconf.DictConfig):

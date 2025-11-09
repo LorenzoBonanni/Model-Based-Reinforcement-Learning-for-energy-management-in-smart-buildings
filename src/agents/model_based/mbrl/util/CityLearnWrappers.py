@@ -6,7 +6,7 @@ import itertools
 
 from typing import List, Mapping
 
-from citylearn.citylearn import CityLearnEnv
+from citylearn.citylearn import CityLearnEnv, EvaluationCondition
 from citylearn.wrappers import StableBaselines3Wrapper
 
 # Logging
@@ -75,7 +75,11 @@ class CityLearnKPIWrapper(StableBaselines3Wrapper):
 
         if terminated or truncated:
             # Get KPIs
-            kpis = self.env.unwrapped.evaluate()
+            kpis = self.env.unwrapped.evaluate(
+                control_condition=EvaluationCondition.WITH_STORAGE_AND_PARTIAL_LOAD_AND_PV,
+                baseline_condition=EvaluationCondition.WITHOUT_STORAGE_AND_PARTIAL_LOAD_BUT_WITH_PV,
+                comfort_band=1.0,
+            )
 
             # names of KPIs to retrieve from evaluate function
             kpi_names = {
@@ -213,8 +217,7 @@ class CityLearnWandbWrapper(StableBaselines3Wrapper):
                         'Metrics/EpRet': self._log_fn(self.ep_rewards),
                         'Metrics/EpLen': self._log_fn(self.ep_lengths),
                         'Metrics/EpCost': 0.0
-                    },
-                    step=self.ep_count
+                    }
                 )
             
             # Print episode summary if verbose

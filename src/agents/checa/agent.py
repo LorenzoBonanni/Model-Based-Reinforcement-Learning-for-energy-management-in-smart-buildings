@@ -7,11 +7,12 @@ from agents.checa.forecast_agent.forecasting_agent import ForecastAgent
 from agents.checa.battery_control_search.battery_controller import BatteryController
 from agents.checa.utils import get_observation_names_with_building
 
+
 class Checa(Agent):
     def __init__(self, env: CityLearnEnv, params=None, **kwargs):
         super().__init__(env, **kwargs)
         self.env = env
-        self.n_buildings = len(self.env.buildings)
+        self.n_buildings = len(self.building_metadata)
         self.observation_names = env.observation_names
         self.observation_names_b = get_observation_names_with_building(env.observation_names[0])
         self.seen_steps = 0
@@ -82,23 +83,23 @@ class Checa(Agent):
         self.future_cooling_demands = None
 
         # Cooling device controller
-        self.cooling_device_controller = [CoolingDeviceController(self.env.buildings[b].get_metadata(), b, self.observation_names_b) for b in range(self.n_buildings)]
+        self.cooling_device_controller = [CoolingDeviceController(self.building_metadata[b], b, self.observation_names_b) for b in range(self.n_buildings)]
 
         # Battery features and important hyperparameters
-        self.battery_capacities = np.array([self.env.buildings[b].get_metadata()['electrical_storage']['capacity'] for b in range(self.n_buildings)])
-        self.battery_nominal_powers = np.array([self.env.buildings[b].get_metadata()['electrical_storage']['nominal_power'] for b in range(self.n_buildings)])
-        self.battery_efficiency_curves = np.array([self.env.buildings[b].get_metadata()['electrical_storage']['power_efficiency_curve'] for b in range(self.n_buildings)])
-        self.battery_capacity_power_curves = np.array([self.env.buildings[b].get_metadata()['electrical_storage']['capacity_power_curve'] for b in range(self.n_buildings)])
-        self.min_battery_soc = np.array([1 - self.env.buildings[b].get_metadata()['electrical_storage']['depth_of_discharge'] for b in range(self.n_buildings)])
+        self.battery_capacities = np.array([self.building_metadata[b]['electrical_storage']['capacity'] for b in range(self.n_buildings)])
+        self.battery_nominal_powers = np.array([self.building_metadata[b]['electrical_storage']['nominal_power'] for b in range(self.n_buildings)])
+        self.battery_efficiency_curves = np.array([self.building_metadata[b]['electrical_storage']['power_efficiency_curve'] for b in range(self.n_buildings)])
+        self.battery_capacity_power_curves = np.array([self.building_metadata[b]['electrical_storage']['capacity_power_curve'] for b in range(self.n_buildings)])
+        self.min_battery_soc = np.array([1 - self.building_metadata[b]['electrical_storage']['depth_of_discharge'] for b in range(self.n_buildings)])
         self.cur_battery_soc = np.array([0.0 for _ in range(self.n_buildings)])
 
         # Initialize Battery Controller
         self.battery_controller = [BatteryController(self.battery_capacities[b], self.params['tau'], self.params['min_soc_per_hour'], self.params['dt'], self.params['max_soc_normal'], self.params['balance_type']) for b in range(self.n_buildings)]
 
         # DHW device/storage features
-        self.dhw_storage_capacity = np.array([self.env.buildings[b].get_metadata()['dhw_storage']['capacity'] for b in range(self.n_buildings)])
-        self.dhw_device_efficiency = np.array([self.env.buildings[b].get_metadata()['dhw_device']['efficiency'] for b in range(self.n_buildings)])
-        self.dhw_device_nominal_powers = np.array([self.env.buildings[b].get_metadata()['dhw_device']['nominal_power'] for b in range(self.n_buildings)])
+        self.dhw_storage_capacity = np.array([self.building_metadata[b]['dhw_storage']['capacity'] for b in range(self.n_buildings)])
+        self.dhw_device_efficiency = np.array([self.building_metadata[b]['dhw_device']['efficiency'] for b in range(self.n_buildings)])
+        self.dhw_device_nominal_powers = np.array([self.building_metadata[b]['dhw_device']['nominal_power'] for b in range(self.n_buildings)])
         self.cur_dhw_soc = np.array([0.0 for _ in range(self.n_buildings)])
 
         # put 0.2 at hours 2, 3, 4, 5, 14 in an array of shape (n_buildings, 24)

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import math
 
-from citylearn.citylearn import CityLearnEnv
+from citylearn.citylearn import CityLearnEnv, EvaluationCondition
 
 def get_kpis(env: CityLearnEnv) -> pd.DataFrame:
     """Returns evaluation KPIs.
@@ -25,7 +25,11 @@ def get_kpis(env: CityLearnEnv) -> pd.DataFrame:
         KPI table.
     """
 
-    kpis = env.unwrapped.evaluate()
+    kpis = env.unwrapped.evaluate(
+        control_condition=EvaluationCondition.WITH_STORAGE_AND_PARTIAL_LOAD_AND_PV,
+        baseline_condition=EvaluationCondition.WITHOUT_STORAGE_AND_PARTIAL_LOAD_BUT_WITH_PV,
+        comfort_band=1.0,
+    )
 
     # names of KPIs to retrieve from evaluate function
     kpi_names = {
@@ -186,7 +190,11 @@ def evaluate_citylearn_challenge(env: CityLearnEnv, weights: dict[str, float]) -
             'one_minus_thermal_resilience_proportion': {'display_name': 'Thermal resilience', 'weight': 0.15},
             'power_outage_normalized_unserved_energy_total': {'display_name': 'Unserved energy', 'weight': 0.15},
     }
-    data = env.unwrapped.evaluate()
+    data = env.unwrapped.evaluate(
+            control_condition=EvaluationCondition.WITH_STORAGE_AND_PARTIAL_LOAD_AND_PV,
+            baseline_condition=EvaluationCondition.WITHOUT_STORAGE_AND_PARTIAL_LOAD_BUT_WITH_PV,
+            comfort_band=1.0,
+    )
 
     data = data[data['level']=='district'].set_index('cost_function').to_dict('index')
     evaluation = {k: {**v, 'value': data[k]['value']} for k, v in evaluation.items()}

@@ -2,12 +2,16 @@
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
+import os
 import pathlib
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 import gymnasium as gym
 import hydra
 import numpy as np
 import omegaconf
+import pandas as pd
+from mbrl.util.kpi_utils import plot_simulation_summary
+from mbrl.util.plot_utils import make_plots
 from mbrl.planning.sac_wrapper import SACAgent
 from mbrl.third_party.pytorch_sac import VideoRecorder
 import mbrl.models
@@ -22,6 +26,26 @@ from .replay_buffer import (
     TransitionIterator,
 )
 import mbrl.util.math
+from mbrl.util.kpi_utils import evaluate_citylearn_challenge, plot_simulation_summary
+
+phase_1_weights = {
+    'comfort': 0.3,
+    'emissions': 0.1,
+    'grid_control': 0.6,
+    'resilience': 0.0
+}
+phase_2_weights = {
+    'comfort': 0.3,
+    'emissions': 0.1,
+    'grid_control': 0.3,
+    'resilience': 0.3
+}
+custom_weights = {
+    'comfort': 0.3,
+    'emissions': 0.4,
+    'grid_control': 0.3,
+    'resilience': 0.0
+}
 
 
 def calc_rest_ensemble_mean_std_leave_out_model_indices(means_of_all_ensembles: torch.Tensor,
@@ -119,7 +143,6 @@ def evaluate(
         (float): The average reward of the num_episode episodes
     """
     avg_episode_reward = 0
-    infos = []
     for episode in range(num_episodes):
         obs, _ = env.reset(seed=episode)
         video_recorder.init(enabled=(episode == 0))
@@ -128,15 +151,81 @@ def evaluate(
         while not terminated and not truncated:
             action = agent.act(obs)
             obs, reward, terminated, truncated, info = env.step(action)
-            if info:
-                infos.append(info)
             video_recorder.record(env)
             episode_reward += reward
+
         avg_episode_reward += episode_reward
 
 
-    return avg_episode_reward / num_episodes, infos
+    return avg_episode_reward / num_episodes, None
 
+def save_episode_data(env, cooling_actions, battery_actions, dhw_actions, episode, algorithm_name):
+    workdir = os.getcwd()
+    make_plots(env, cooling_actions=cooling_actions, battery_actions=battery_actions, dhw_actions=dhw_actions, output_dir=workdir, episode=episode)
+    make_plots(env, cooling_actions=cooling_actions, battery_actions=battery_actions, dhw_actions=dhw_actions, output_dir=workdir, episode=episode, limit=24*10)  # First 10 days
+    building_kpi, district_kpi = plot_simulation_summary({algorithm_name: env}, workdir, algorithm_name)
+    score = evaluate_citylearn_challenge(
+        env,
+        phase_1_weights
+    )
+
+    pd.DataFrame(score).to_csv(os.path.join(workdir, f"{algorithm_name}_test_score.csv"))
+    building_kpi.to_csv(os.path.join(workdir, f"episode_{episode}",f"{algorithm_name}_building_kpis.csv"))
+    district_kpi.to_csv(os.path.join(workdir, f"episode_{episode}",f"{algorithm_name}_district_kpis.csv"))
+
+def final_evaluate(
+        env: gym.Env,
+        agent: SACAgent,
+        num_episodes: int,
+        algorithm_name: str
+) -> Tuple[float, Any]:
+    """We want to evaluate the agent.
+    Uses agent to act in environemnt. Calculates the mean reward over the episodes.
+
+    Args:
+        env (gym.Env): The environment of the evaluations
+        num_episodes (int): Number of episodes to evaluate the agent
+        agent (SACAgent): Agent to evaluate
+
+    Returns:
+        (float): The average reward of the num_episode episodes
+    """
+    avg_episode_reward = 0
+    infos = []
+
+    # Get action indices
+    idx_battery_action = np.where(np.array(env.unwrapped.buildings[0].active_actions) == "electrical_storage")[0][0]
+    idx_cooling_action = np.where(np.array(env.unwrapped.buildings[0].active_actions) == "cooling_device")[0][0]
+    idx_dhw_action = np.where(np.array(env.unwrapped.buildings[0].active_actions) == "dhw_storage")[0][0]
+
+    for episode in range(num_episodes):
+        obs, _ = env.reset(seed=episode)
+        # Initialize action lists
+        battery_actions = [[0.0] for _ in range(len(env.unwrapped.buildings))]
+        cooling_actions = [[0.0] for _ in range(len(env.unwrapped.buildings))]
+        dhw_actions = [[0.0] for _ in range(len(env.unwrapped.buildings))]
+
+        terminated = truncated = False
+        episode_reward = 0
+        while not terminated and not truncated:
+            action = agent.act(obs)
+            obs, reward, terminated, truncated, info = env.step(action)
+            episode_reward += float(reward)
+            if info:
+                infos.append(info)
+
+            # Record actions for each building
+            for i in range(len(env.unwrapped.buildings)):
+                battery_actions[i].append(action[3*i + idx_battery_action])
+                cooling_actions[i].append(action[3*i + idx_cooling_action])
+                dhw_actions[i].append(action[3*i + idx_dhw_action])
+
+        print(f"Episode {episode + 1} finished.")
+        avg_episode_reward += episode_reward
+        save_episode_data(env, cooling_actions, battery_actions, dhw_actions, episode, algorithm_name)
+        
+
+    return avg_episode_reward / num_episodes, infos
 
 def evaluate_for_building(
         env: gym.Env,

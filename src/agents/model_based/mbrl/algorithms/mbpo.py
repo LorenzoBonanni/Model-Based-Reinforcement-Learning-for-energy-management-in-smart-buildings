@@ -300,4 +300,6 @@ def train(
 
             env_steps += 1
             obs = next_obs
+            
+    best_agent.sac_agent.load_checkpoint(ckpt_path=os.path.join(work_dir, "sac.pth"))
     return np.float32(best_eval_reward), best_agent

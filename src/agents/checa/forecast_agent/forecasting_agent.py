@@ -5,6 +5,7 @@ from agents.checa.forecast_agent.utils import fast_closest_hour
 
 class ForecastAgent:
     def __init__(self, env, tau, observation_names_b):
+        self.building_metadata = env.unwrapped.get_metadata()['buildings']
         self.tau = tau
         self.env = env
         self.total_steps = 0
@@ -208,7 +209,7 @@ class ForecastAgent:
         Given the observations, save the data and return the current states.
         """
 
-        hour = observations[self.observation_names_b.index("hour")]
+        hour = int(observations[self.observation_names_b.index("hour")])
         temp_out = observations[self.observation_names_b.index("outdoor_dry_bulb_temperature")]
         cyclical_hour = np.array([np.sin(2 * np.pi * hour / 24), np.cos(2 * np.pi * hour / 24)])
         day_type = observations[self.observation_names_b.index("day_type")]
@@ -263,8 +264,8 @@ class ForecastAgent:
         for b in range(self.n_buildings):
             occupancy = observations[self.observation_names_b.index("occupant_count_" + str(b))]
             temp_in = observations[self.observation_names_b.index("indoor_dry_bulb_temperature_" + str(b))]
-            annual_dhw_demand_estimate = self.env.buildings[b].get_metadata()['annual_dhw_demand_estimate']
-            annual_non_shiftable_load_estimate = self.env.buildings[b].get_metadata()['annual_non_shiftable_load_estimate']
+            annual_dhw_demand_estimate = self.building_metadata[b]['annual_dhw_demand_estimate']
+            annual_non_shiftable_load_estimate = self.building_metadata[b]['annual_non_shiftable_load_estimate']
 
             # Get the current state
             solar_generation_X.append(np.array([cur_solar_generation[b], cyclical_hour[0], cyclical_hour[1], expected_values['solar_generation'][b],
