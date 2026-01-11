@@ -143,6 +143,18 @@ def plot_district_kpis(envs: dict[str, CityLearnEnv]) -> pd.DataFrame:
     return kpis
 
 def evaluate_citylearn_challenge(env: CityLearnEnv, weights: dict[str, float]) -> dict[str, float]:
+    """
+    Evaluates the performance of an agent in the CityLearn Challenge environment using a set of key performance indicators (KPIs)
+    and computes a weighted average score based on provided weights.
+    Args:
+        env (CityLearnEnv): The CityLearn environment instance to evaluate. Must provide an `evaluate` method and support unwrapping.
+        weights (dict[str, float]): A dictionary specifying the weights for each high-level score category. 
+            Expected keys are 'comfort', 'emissions', 'grid_control', and 'resilience'.
+    Returns:
+        dict[str, float]: A dictionary containing the evaluation results for each KPI, the computed scores for each category,
+            and the final weighted average score. Each entry includes the display name, weight, and value.
+    """
+
     evaluation = {
             'carbon_emissions_total': {'display_name': 'Carbon emissions', 'weight': 0.10},
             'discomfort_proportion': {'display_name': 'Unmet hours', 'weight': 0.30},

@@ -157,6 +157,41 @@ def plot_energy(
     plt.close()
 
 def compare_kpis(res_1, res_2, algo_names=[]):
+    """
+    Compare Key Performance Indicators (KPIs) between two results and generate a visualization.
+    This function creates a horizontal bar chart comparing KPIs from two different 
+    results or algorithm runs side by side. The chart is saved as a PNG file in 
+    the current working directory.
+    Parameters
+    ----------
+    res_1 : dict
+        Dictionary containing results from the first run/algorithm. Must have a 'kpis' 
+        key with a dictionary of KPI names and their values.
+    res_2 : dict
+        Dictionary containing results from the second run/algorithm. Must have a 'kpis' 
+        key with a dictionary of KPI names and their values.
+    algo_names : list, optional
+        List of two strings representing the names of the algorithms/runs being compared. 
+        Default is an empty list. If provided, should contain exactly two names for 
+        proper labeling in the title and legend.
+    Returns
+    -------
+    None
+        The function generates a plot and saves it to disk but does not return a value.
+    Notes
+    -----
+    - The plot is saved as 'kpi_comparison.png' in the current working directory.
+    - Uses seaborn for styling with 'whitegrid' style and 'talk' context.
+    - Color palette is set to 'colorblind' for better accessibility.
+    - Figure size is set to (12, 6) inches at 300 DPI.
+    Raises
+    ------
+    IndexError
+        If algo_names list does not have at least 2 elements when accessed.
+    KeyError
+        If 'kpis' key is not present in res_1 or res_2 dictionaries.
+    """
+
     sns.set_style("whitegrid")
     sns.set_context("talk")
     palette = sns.color_palette("colorblind", 5)
