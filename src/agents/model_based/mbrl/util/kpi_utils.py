@@ -1,57 +1,39 @@
 
+from typing import Dict
 import pandas as pd
 
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 import math
 
 from citylearn.citylearn import CityLearnEnv, EvaluationCondition
 
-def get_kpis(env: CityLearnEnv) -> pd.DataFrame:
-    """Returns evaluation KPIs.
+def get_kpis(env: CityLearnEnv) -> Dict[str, float]:
+    kpis = env.unwrapped.evaluate()
 
-    Electricity cost and carbon emissions KPIs are provided
-    at the building-level and average district-level. Average daily peak,
-    ramping and (1 - load factor) KPIs are provided at the district level.
-
-    Parameters
-    ----------
-    env: CityLearnEnv
-        CityLearn environment instance.
-
-    Returns
-    -------
-    kpis: pd.DataFrame
-        KPI table.
-    """
-
-    kpis = env.unwrapped.evaluate(
-        control_condition=EvaluationCondition.WITH_STORAGE_AND_PARTIAL_LOAD_AND_PV,
-        baseline_condition=EvaluationCondition.WITHOUT_STORAGE_AND_PARTIAL_LOAD_BUT_WITH_PV,
-        comfort_band=1.0,
-    )
-
-    # names of KPIs to retrieve from evaluate function
+    # KPIs to retrieve
     kpi_names = {
-        'cost_total': 'Cost',
-        'carbon_emissions_total': 'Emissions',
-        'daily_peak_average': 'Avg. daily peak',
-        'ramping_average': 'Ramping',
-        'monthly_one_minus_load_factor_average': '1 - load factor',
-        'discomfort_proportion': 'Discomfort'
+        'cost_total': 'Cost ($/kWh)',
+        'carbon_emissions_total': 'Emissions (kgC02e/kWh)',
+        'daily_peak_average': 'Avg. daily peak (kWh)',
+        'ramping_average': 'Ramping (kWh)',
+        'daily_one_minus_load_factor_average': '1 - load factor',
+        'discomfort_proportion': 'Discomfort (%)'
     }
+
+    # Filter KPIs
     kpis = kpis[
+        (kpis['level'] == 'district') &
         (kpis['cost_function'].isin(kpi_names))
     ].dropna()
     kpis['cost_function'] = kpis['cost_function'].map(lambda x: kpi_names[x])
 
-    # round up the values to 2 decimal places for readability
-    kpis['value'] = kpis['value'].round(2)
+    kpis_dict = {}
+    for _, kpi in kpis.iterrows():
+        kpis_dict[kpi['cost_function']] = kpi['value']
 
-    # rename the column that defines the KPIs
-    kpis = kpis.rename(columns={'cost_function': 'kpi'})
-
-    return kpis
+    return kpis_dict
 
 def plot_building_kpis(envs: dict[str, CityLearnEnv]) -> pd.DataFrame:
     """Plots electricity consumption, cost and carbon emissions
@@ -160,25 +142,6 @@ def plot_district_kpis(envs: dict[str, CityLearnEnv]) -> pd.DataFrame:
 
     return kpis
 
-def plot_simulation_summary(envs: dict[str, CityLearnEnv], base_path: str, algorithm_name: str = "") -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Plots KPIs for different control agents.
-
-    Parameters
-    ----------
-    envs: dict[str, CityLearnEnv]
-        Mapping of user-defined control agent names to environments
-        the agents have been used to control.
-    """
-
-    building_kpis = plot_building_kpis(envs)
-    plt.tight_layout()
-    plt.savefig(f'{base_path}/{algorithm_name}_building_kpis.png')
-
-    district_kpis = plot_district_kpis(envs)
-    plt.tight_layout()
-    plt.savefig(f'{base_path}/{algorithm_name}_district_kpis.png')
-    return building_kpis, district_kpis
-
 def evaluate_citylearn_challenge(env: CityLearnEnv, weights: dict[str, float]) -> dict[str, float]:
     evaluation = {
             'carbon_emissions_total': {'display_name': 'Carbon emissions', 'weight': 0.10},
@@ -193,7 +156,7 @@ def evaluate_citylearn_challenge(env: CityLearnEnv, weights: dict[str, float]) -
     data = env.unwrapped.evaluate(
             control_condition=EvaluationCondition.WITH_STORAGE_AND_PARTIAL_LOAD_AND_PV,
             baseline_condition=EvaluationCondition.WITHOUT_STORAGE_AND_PARTIAL_LOAD_BUT_WITH_PV,
-            comfort_band=1.0,
+            comfort_band=2.0,
     )
 
     data = data[data['level']=='district'].set_index('cost_function').to_dict('index')
@@ -232,15 +195,15 @@ def evaluate_citylearn_challenge(env: CityLearnEnv, weights: dict[str, float]) -
         'weight': weights['resilience'],
         'value': score_resilience
     }
-
+    weighted_resilience = weights['resilience'] * score_resilience
     evaluation['average_score'] = {
         'display_name': 'Score',
         'weight': None,
         'value': (
-            weights['comfort']*score_comfort +
-            weights['emissions']*score_emissions +
-            weights['grid_control']*score_grid_control +
-            weights['resilience']*score_resilience
+            weights['comfort'] * score_comfort +
+            weights['emissions'] * score_emissions +
+            weights['grid_control'] * score_grid_control +
+            (weighted_resilience if not np.isnan(weighted_resilience) else 0.0)
         )
     }
 
