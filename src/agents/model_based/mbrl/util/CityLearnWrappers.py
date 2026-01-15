@@ -75,11 +75,7 @@ class CityLearnKPIWrapper(StableBaselines3Wrapper):
 
         if terminated or truncated:
             # Get KPIs
-            kpis = self.env.unwrapped.evaluate(
-                control_condition=EvaluationCondition.WITH_STORAGE_AND_PARTIAL_LOAD_AND_PV,
-                baseline_condition=EvaluationCondition.WITHOUT_STORAGE_AND_PARTIAL_LOAD_BUT_WITH_PV,
-                comfort_band=2.0,
-            )
+            kpis = self.env.unwrapped.evaluate()
 
             # names of KPIs to retrieve from evaluate function
             kpi_names = {
@@ -87,10 +83,11 @@ class CityLearnKPIWrapper(StableBaselines3Wrapper):
                 'carbon_emissions_total': 'Emissions',
                 'daily_peak_average': 'Avg. daily peak',
                 'ramping_average': 'Ramping',
-                'monthly_one_minus_load_factor_average': '1 - load factor',
+                'daily_one_minus_load_factor_average': '1 - load factor',
                 'discomfort_proportion': 'Discomfort'
             }
             kpis = kpis[
+                (kpis['level'] == 'district') &
                 (kpis['cost_function'].isin(kpi_names))
             ].dropna()
             kpis['cost_function'] = kpis['cost_function'].map(lambda x: kpi_names[x])

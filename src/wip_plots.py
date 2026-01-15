@@ -1130,7 +1130,9 @@ def evaluate(args, agent_type: str, schema: dict, seed: int=None):
         'dhw': {
             'soc': env.buildings[0].dhw_storage.soc[:-1],
             'demand': env.buildings[0].dhw_demand[:-1],
-            'consumption': env.buildings[0].dhw_electricity_consumption[:-1]
+            'consumption': env.buildings[0].dhw_electricity_consumption[:-1],
+            'energy_from_dhw_storage': env.buildings[0].energy_from_dhw_storage[:-1],
+            'energy_from_dhw_device': env.buildings[0].energy_from_dhw_device[:-1]
         },
         'cooling_device': {
             'consumption': env.buildings[0].cooling_device.electricity_consumption[:-1]

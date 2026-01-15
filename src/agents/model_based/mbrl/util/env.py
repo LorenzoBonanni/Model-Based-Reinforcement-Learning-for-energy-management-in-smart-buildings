@@ -225,16 +225,15 @@ def _legacy_make_env(
             schema_obj = CityLearnSchema()
             schema_obj.load(dataset=schema_name, custom=False)
             train_schema, test_schema = schema_obj.train_test_split(frac=0.8, mode='train')
-            env = CityLearnEnv(
-                schema=train_schema, 
-                central_agent=True,
-            )
-            reward_fn = SolarPenaltyAndComfortReward(env.schema)
-            env.reward_function = reward_fn
 
             # env = NormalizedSpaceWrapper(env)
             if not test_env:
-                print("HERE")
+                env = CityLearnEnv(
+                    schema=train_schema, 
+                    central_agent=True,
+                )
+                reward_fn = SolarPenaltyAndComfortReward(env.schema)
+                env.reward_function = reward_fn
                 env = CityLearnWandbWrapper(env, online=True, verbose=True)
             else:
                 env = CityLearnEnv(

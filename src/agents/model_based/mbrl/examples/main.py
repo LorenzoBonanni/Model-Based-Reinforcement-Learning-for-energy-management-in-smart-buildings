@@ -122,21 +122,23 @@ def test_experiment(test_cfg_name):
             weights=CHALLENGE_WEIGHTS_PHASE_CUSTOM
         )
 
-        print("*" * 10)
-        print("RL Agent")
-        for k, v in scores_rl.items():
-            print(f"- {v['display_name']}: {v['value']:.4f} (weight: {v['weight']})")
-        print(f"  -> Total episode reward: {rl_ep_reward:.4f}")
-        print("*" * 10)
+        # print("*" * 10)
+        # print("RL Agent")
+        # for k, v in scores_rl.items():
+        #     print(f"- {v['display_name']}: {v['value']:.4f} (weight: {v['weight']})")
+        # print(f"  -> Total episode reward: {rl_ep_reward:.4f}")
+        # print("*" * 10)
 
-        print("Comfort RBC")
-        for k, v in scores_rbc.items():
-            print(f"- {v['display_name']}: {v['value']:.4f} (weight: {v['weight']})")
-        print(f"  -> Total episode reward: {rbc_ep_reward:.4f}")
-        print("*" * 10)
+        # print("Comfort RBC")
+        # for k, v in scores_rbc.items():
+        #     print(f"- {v['display_name']}: {v['value']:.4f} (weight: {v['weight']})")
+        # print(f"  -> Total episode reward: {rbc_ep_reward:.4f}")
+        # print("*" * 10)
 
         plot_energy(rl_result, cfg.algorithm.name)
+        plot_energy(rbc_result, "Comfort RBC")
         plot_temperature(rl_result, cfg.algorithm.name)
+        plot_temperature(rbc_result, "Comfort RBC")
         compare_kpis(rbc_result, rl_result, algo_names=['Comfort RBC', cfg.algorithm.name])
 
         workdir = os.getcwd()
