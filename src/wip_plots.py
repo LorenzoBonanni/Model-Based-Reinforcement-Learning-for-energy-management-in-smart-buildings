@@ -1,5 +1,6 @@
 # Our agents
 import json
+import pickle
 from typing import Any, Dict, List, OrderedDict
 
 # CityLearn utils
@@ -814,6 +815,7 @@ class AdvancedRBC(Agent):
 
 
 def plot_temperature(res_1, suffix=''):
+    plt.clf()
     temp_1 = res_1['env_h']['temperature']
     indoor_temps = temp_1['indoor_temperature']
     indoor_setpoints = temp_1['indoor_temperature_set_point']
@@ -840,7 +842,7 @@ def plot_temperature(res_1, suffix=''):
         alpha=0.1,
         label='Comfort band',
     )
-    axs.plot(range(n), outdoor_temps, label='Outdoor Temperature', color=palette[1], lw=2)
+    # axs.plot(range(n), outdoor_temps, label='Outdoor Temperature', color=palette[1], lw=2)
     axs.set_ylabel('Temperature [°C]')
     axs.set_title('Temperature Profiles')
     axs.legend(
@@ -854,6 +856,7 @@ def plot_temperature(res_1, suffix=''):
 
 
 def compare_temperature(args, res_1, res_2, algo_names=[]):
+    plt.clf()
     # RBC temperature
     temp_1 = res_1['env_h']['temperature']
     temp_2 = res_2['env_h']['temperature']
@@ -882,7 +885,7 @@ def compare_temperature(args, res_1, res_2, algo_names=[]):
 
     mode = 'test' if args.test else 'eval'
     os.makedirs(f'{args.exp_dir}/{mode}_figs', exist_ok=True)
-    fig.savefig(f'{args.exp_dir}/{mode}_figs/temperature.png', format='png')
+    fig.savefig('temperature_comparison.png', format='png')
 
 def compare_battery(args, res_1, res_2, algo_names=[]):
     # Set figure
@@ -927,6 +930,7 @@ def plot_energy(
     res,
     suffix=''
 ):
+    plt.clf()
     cooling_device_consumption=res['env_h']['cooling_device']['consumption']
     dhw_device_consumption=res['env_h']['dhw']['consumption']
     non_shiftable_load=res['env_h']['non_shiftable_load']
@@ -1079,13 +1083,15 @@ def evaluate(args, agent_type: str, schema: dict, seed: int=None):
     # Agent
     if agent_type == 'comfort_rbc':
         agent = ComfortRBC(env)
-    elif agent_type == 'advanced_rbc':
-        agent = AdvancedRBC(env)
-    elif agent_type == 'custom_rbc':
-        # agent = CustomRBC(env)
-        agent = ComfortRBC(env)
     else:
-        raise RuntimeError(f'Unknown agent type {agent_type}. Must be either `rbc` or `rl`.')
+        pass
+    # elif agent_type == 'advanced_rbc':
+    #     agent = AdvancedRBC(env)
+    # elif agent_type == 'custom_rbc':
+    #     # agent = CustomRBC(env)
+    #     agent = ComfortRBC(env)
+    # else:
+    #     raise RuntimeError(f'Unknown agent type {agent_type}. Must be either `rbc` or `rl`.')
     
     # Episodic return
     results = {}
@@ -1094,7 +1100,8 @@ def evaluate(args, agent_type: str, schema: dict, seed: int=None):
     # Step through the environment
     obs, _ = env.reset(seed=args.seed)
     while not env.terminated:
-        action = agent.predict(obs)        
+        action = agent.predict(obs)
+        # action[0][-1] = 1.0
         obs, reward, _, _, _ = env.step(action)
         ep_reward += reward[0]
 
@@ -1162,26 +1169,32 @@ if __name__ == '__main__':
     # Evaluate Rule-based Control agent
     res_comfort_rbc = evaluate(args, 'comfort_rbc', schema_obj.schema)
     res_advanced_rbc = evaluate(args, 'advanced_rbc', schema_obj.schema)
+    res_advanced_rbc = pickle.load(open('/home/lorenzobonanni/Desktop/Model-Based-Reinforcement-Learning-for-energy-management-in-smart-buildings/src/agents/model_based/outputs/2026-01-15/16-15-34/macura_rl_results.pkl', 'rb'))
+    kpis = res_advanced_rbc['kpis']
+    for kpi, value in kpis.items():
+        print(f'- {kpi}: {value:.2f}')
+
+    print(f"{'*'*30}")
 
     # Compare results
     compare_temperature(args, res_comfort_rbc, res_advanced_rbc, algo_names=['Comfort RBC', 'Advanced RBC'])
-    compare_battery(args, res_comfort_rbc, res_advanced_rbc, algo_names=['Comfort RBC', 'Advanced RBC'])
-    compare_kpis(args, res_comfort_rbc, res_advanced_rbc, algo_names=['Comfort RBC', 'Advanced RBC'])
+    # compare_battery(args, res_comfort_rbc, res_advanced_rbc, algo_names=['Comfort RBC', 'Advanced RBC'])
+    # compare_kpis(args, res_comfort_rbc, res_advanced_rbc, algo_names=['Comfort RBC', 'Advanced RBC'])
     # Plot energy profile for Comfort RBC
     plot_energy(
-        res= res_comfort_rbc,
+        res=res_comfort_rbc,
         suffix='comfort_rbc'
     )
     # Plot energy profile for Advanced RBC
     plot_energy(
-        res_advanced_rbc,
+        res=res_advanced_rbc,
         suffix='advanced_rbc'
     )
 
-    plot_temperature(
-        res_1=res_comfort_rbc,
-        suffix='comfort_rbc'
-    )
+    # plot_temperature(
+    #     res_1=res_comfort_rbc,
+    #     suffix='comfort_rbc'
+    # )
 
     plot_temperature(
         res_1=res_advanced_rbc,

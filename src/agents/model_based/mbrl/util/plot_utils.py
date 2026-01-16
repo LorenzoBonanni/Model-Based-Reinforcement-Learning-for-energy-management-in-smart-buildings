@@ -292,7 +292,7 @@ def plot_temperature(results, suffix=''):
         alpha=0.1,
         label='Comfort band',
     )
-    axs.plot(range(n), outdoor_temps, label='Outdoor Temperature', color=palette[1], lw=2)
+    # axs.plot(range(n), outdoor_temps, label='Outdoor Temperature', color=palette[1], lw=2)
     axs.set_ylabel('Temperature [°C]')
     axs.set_title('Temperature Profiles')
     axs.legend(
