@@ -35,7 +35,17 @@ CHALLENGE_WEIGHTS_PHASE_CUSTOM = {
     'grid_control': 0.3,
     'resilience': 0.0
 }
-PATH = '/home/lorenzobonanni/Desktop/Model-Based-Reinforcement-Learning-for-energy-management-in-smart-buildings/src/agents/model_based/outputs/2026-01-15/16-15-34/macura/sac.pth'
+PATH = '/home/lorenzobonanni/Desktop/Model-Based-Reinforcement-Learning-for-energy-management-in-smart-buildings/src/agents/model_based/sac.pth'
+
+def parse_extra_args():
+    """Parse additional command line arguments that aren't handled by Hydra."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('--path', type=str, default=PATH, help='Path to SAC checkpoint')
+    args, remaining = parser.parse_known_args()
+    # Replace sys.argv so Hydra only sees its arguments
+    import sys
+    sys.argv[1:] = remaining
+    return args
 
 class ComfortRBC(OptimizedRBC):
     """
@@ -126,7 +136,7 @@ class ComfortRBC(OptimizedRBC):
             if 'cooling_device' in available_act:
                 # Action indexes
                 device_idx = available_act.index('cooling_device')
-                if 'electircal_storage' in available_act:
+                if 'electrical_storage' in available_act:
                     ess_idx = available_act.index('electrical_storage')
                 else:
                     ess_idx = None
@@ -363,7 +373,7 @@ def evaluate(agent: object, env: object, seed: int=None):
 
     # Console log
     print(
-        f"{'*'*30}\n CONTROL RESULTS (RL{f' | seed={seed}' if seed is not None else ''})" +
+        f"{'*'*30}\n CONTROL RESULTS ({agent.__class__.__name__}{f' | seed={seed}' if seed is not None else ''})" +
         f'\n- Reward: {ep_reward}'
     )
 
@@ -405,28 +415,37 @@ def evaluate(agent: object, env: object, seed: int=None):
 
     return results
 
+extra_args = parse_extra_args()
 
 @hydra.main(config_path="conf", config_name="launcher_macura")
 def main(launcher_cfg: omegaconf.DictConfig):
     """Top-level Hydra entrypoint (the one you call via `python -m`)."""
     global agent
 
+    # Parse extra arguments
+    PATH = extra_args.path
+
     train_cfg_name = launcher_cfg.train_cfg
     test_cfg_name = launcher_cfg.test_cfg
 
     # Get schema from CityLearn dataset
     schema_obj = CityLearnSchema()
-    data = 'citylearn_challenge_2023_phase_1'
+    data = 'citylearn_challenge_2023_phase_3_1'
     schema_obj.load(dataset=data)
 
     # Modify schema for testing on a different building
     schema_obj.set_active(key='buildings', items=[f'Building_2'])
 
-
     GlobalHydra.instance().clear()
     with initialize(config_path="conf"):
         cfg = compose(config_name=train_cfg_name)
-            # Create CityLearn environment
+        # Create CityLearn environment
+        # Train/test split
+        # train_schema, test_schema = schema_obj.train_test_split(frac=0.7, mode='train')
+        # env = CityLearnEnv(
+        #     schema=test_schema, 
+        #     central_agent=True,
+        # )
         env = CityLearnEnv(
             schema=schema_obj.schema, 
             central_agent=True,
@@ -465,6 +484,8 @@ def main(launcher_cfg: omegaconf.DictConfig):
         workdir = os.getcwd()
         with open(os.path.join(workdir, f"{cfg.algorithm.name}_rl_results.pkl"), 'wb') as f:
             pickle.dump(res_rl, f)
+        with open(os.path.join(workdir, f"comfort_rbc_results.pkl"), 'wb') as f:
+            pickle.dump(res_rbc, f)
         
         scores_rl_df = pd.DataFrame.from_dict(scores_rl, orient='index')
         scores_rl_df.to_csv(os.path.join(workdir, f"{cfg.algorithm.name}_rl_scores.csv"))
